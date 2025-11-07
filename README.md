@@ -100,19 +100,19 @@ After=network.target
 
 [Service]
 Type=simple
-User=www-data
-WorkingDirectory=/home/ubuntu/network-toolbox
-Environment=NODE_ENV=production
-ExecStart=/usr/bin/node server.js
+User=root
+WorkingDirectory=/root/netscan.online
+ExecStart=/usr/bin/node /root/netscan.online/server.js
 Restart=always
-RestartSec=10
-StandardOutput=syslog
-StandardError=syslog
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
 SyslogIdentifier=network-toolbox
 
 [Install]
 WantedBy=multi-user.target
 ```
+Check correct file location: ExecStart=/usr/bin/node /root/netscan.online/server.js
 
 ### Customize:
 
