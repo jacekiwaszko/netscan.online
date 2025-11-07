@@ -1,0 +1,27 @@
+{
+  "name": "network-toolbox",
+  "version": "1.0.0",
+  "description": "Real-time web-based network diagnostics: Ping, WHOIS, DIG, Port Scan, etc.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "network",
+    "ping",
+    "whois",
+    "dig",
+    "portscan",
+    "nslookup",
+    "ipcalc",
+    "socket.io",
+    "express"
+  ],
+  "author": "Kamil Kaczmarczyk <https://netscan.online>",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
+  }
+}
