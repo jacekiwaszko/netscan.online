@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Network Toolbox</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117; --card: #161b22; --text: #c9d1d9; --border: #30363d;
+    --primary: #58a6ff; --success: #3fb950; --warning: #f1c40f; --danger: #da3633;
+    --cyan: #79c0ff; --yellow: #e3b341;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    background:#010409; color:var(--text); font-family:'JetBrains Mono',monospace;
+    min-height:100vh; padding:2rem 1rem; line-height:1.6;
+  }
+  .container{max-width:960px;margin:auto;}
+  h1{
+    text-align:center; font-size:2.5rem; margin-bottom:.5rem;
+    background:linear-gradient(90deg,#58a6ff,#a855f7);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .client-info{
+    text-align:center; margin:1rem 0; font-size:1.1rem; color:#8b949e;
+  }
+  .client-info strong{
+    color:#58a6ff; cursor:pointer; text-decoration:underline;
+    transition:color .2s;
+  }
+  .client-info strong:hover{color:#79c0ff;}
+  .tabs{
+    display:flex; gap:4px; margin:1.5rem 0; justify-content:center; flex-wrap:wrap;
+  }
+  .tab{
+    padding:.8rem 1.8rem; font-weight:600; border-radius:12px 12px 0 0;
+    background:#1f2937; color:#9ca3af; cursor:pointer; transition:.2s;
+    box-shadow:0 2px 6px rgba(0,0,0,.3);
+  }
+  .tab.active{
+    background:var(--card); color:var(--text); box-shadow:0 4px 12px rgba(0,0,0,.4);
+    transform:translateY(-2px);
+  }
+  .tab:hover:not(.active){background:#374151;}
+  .card{
+    background:var(--card); border-radius:0 14px 14px 14px; padding:2rem;
+    box-shadow:0 8px 25px rgba(0,0,0,.4); margin-top:-4px;
+  }
+  .input-group{display:flex; gap:1rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center;}
+  input[type=text], input[type=number]{
+    padding:1rem; font-family:inherit; font-size:1rem;
+    background:#0d1117; border:2px solid var(--border); border-radius:14px; color:var(--text);
+    transition:background .3s, border-color .2s;
+  }
+  input[type=text]{flex:1; min-width:200px;}
+  input[type=number]{width:120px; text-align:center;}
+  input:focus{border-color:var(--primary); outline:none; box-shadow:0 0 0 5px rgba(88,166,255,.25);}
+  .btn{
+    padding:1rem 1.8rem; font-weight:600; border:none; border-radius:14px;
+    cursor:pointer; display:flex; align-items:center; gap:.6rem; transition:.2s;
+  }
+  .btn:disabled{opacity:0.6; cursor:not-allowed;}
+  #start{background:var(--primary); color:#fff;}
+  #start:hover{background:#1f6feb;}
+  #stop{background:#da3633; color:#fff; display:none;}
+  #stop:hover{background:#b91c1c;}
+  .spinner{width:16px;height:16px;border:2px solid #fff3;border-top:2px solid #fff;border-radius:50%;animation:s 1s linear infinite;display:none;}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .terminal{
+    background:#010409; border:1px solid var(--border); border-radius:14px;
+    padding:1.2rem; min-height:120px; max-height:600px; overflow-y:auto;
+    font-size:.95rem; margin-top:1rem; display:none; white-space:pre-wrap; word-break:break-all;
+    resize: vertical;
+  }
+  .terminal.show{display:block;}
+  .line{animation:f .25s ease;}
+  @keyframes f{from{opacity:0;transform:translateY(-6px)}to{opacity:1}}
+  .stats{display:flex;gap:2rem;margin-top:1rem;font-size:.9rem;color:#8b949e;flex-wrap:wrap;}
+  .stat span{color:var(--text);}
+  .label{font-size:0.9rem; color:#8b949e; margin-right:0.5rem;}
+  footer{margin-top:3rem;text-align:center;color:#8b949e;font-size:.85rem;}
+  @media(max-width:640px){
+    .input-group{flex-direction:column; align-items:stretch;}
+    input[type=text], input[type=number], .btn{width:100%;}
+    .tabs{gap:8px;}
+    .tab{padding:.6rem 1.2rem; font-size:.9rem;}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Network Toolbox</h1>
+
+  <!-- === YOUR IP + LOCATION === -->
+  <div class="client-info">
+    <div>Your IP: <strong id="ip" title="Click to use in current tool">Detecting...</strong></div>
+    <div id="location">Fetching location...</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="ping">Ping</div>
+    <div class="tab" data-tab="whois">Whois</div>
+    <div class="tab" data-tab="nslookup">NSLookup</div>
+    <div class="tab" data-tab="dig">DIG</div>
+    <div class="tab" data-tab="portscan">Port Scan</div>
+    <div class="tab" data-tab="host">HOST</div>
+    <div class="tab" data-tab="ipcalc">IPCalc</div>
+  </div>
+
+  <div class="card">
+    <!-- PING TAB -->
+    <div id="ping-tab" class="tab-content">
+      <div class="input-group">
+        <input type="text" id="ping-target" placeholder="8.8.8.8 • google.com • example.com" autocomplete="off">
+        <span class="label">Pings:</span>
+        <input type="number" id="ping-count" value="10" min="1" max="1000">
+        <button class="btn" id="ping-start"><span class="spinner" id="ping-spinner"></span>Start</button>
+        <button class="btn" id="ping-stop">Stop</button>
+      </div>
+    </div>
+
+    <!-- WHOIS TAB -->
+    <div id="whois-tab" class="tab-content" style="display:none;">
+      <div class="input-group">
+        <input type="text" id="whois-domain" placeholder="example.com • github.com • cloudflare.com" autocomplete="off">
+        <button class="btn" id="whois-start"><span class="spinner" id="whois-spinner"></span>Lookup</button>
+        <button class="btn" id="whois-stop">Stop</button>
+      </div>
+    </div>
+
+    <!-- NSLOOKUP TAB -->
+    <div id="nslookup-tab" class="tab-content" style="display:none;">
+      <div class="input-group">
+        <input type="text" id="nslookup-domain" placeholder="google.com • example.com • localhost" autocomplete="off">
+        <button class="btn" id="nslookup-start"><span class="spinner" id="nslookup-spinner"></span>Lookup</button>
+        <button class="btn" id="nslookup-stop">Stop</button>
+      </div>
+    </div>
+
+    <!-- DIG TAB -->
+    <div id="dig-tab" class="tab-content" style="display:none;">
+      <div class="input-group">
+        <input type="text" id="dig-domain" placeholder="example.com • google.com" autocomplete="off">
+        <span class="label">@</span>
+        <input type="text" id="dig-server" value="1.1.1.1" placeholder="8.8.8.8">
+        <button class="btn" id="dig-start"><span class="spinner" id="dig-spinner"></span>DIG</button>
+        <button class="btn" id="dig-stop">Stop</button>
+      </div>
+    </div>
+
+    <!-- PORT SCAN TAB -->
+    <div id="portscan-tab" class="tab-content" style="display:none;">
+      <div class="input-group">
+        <input type="text" id="portscan-host" placeholder="8.8.8.8 • google.com" autocomplete="off">
+        <span class="label">Port:</span>
+        <input type="number" id="portscan-port" value="80" min="1" max="65535" placeholder="1-65535">
+        <button class="btn" id="portscan-start"><span class="spinner" id="portscan-spinner"></span>Scan</button>
+        <button class="btn" id="portscan-stop">Stop</button>
+      </div>
+    </div>
+
+    <!-- HOST TAB -->
+    <div id="host-tab" class="tab-content" style="display:none;">
+      <div class="input-group">
+        <input type="text" id="host-target" placeholder="google.com • 8.8.8.8 • example.com" autocomplete="off">
+        <button class="btn" id="host-start"><span class="spinner" id="host-spinner"></span>Lookup</button>
+        <button class="btn" id="host-stop">Stop</button>
+      </div>
+    </div>
+
+    <!-- IPCALC TAB (SIMPLE) -->
+    <div id="ipcalc-tab" class="tab-content" style="display:none;">
+      <div class="input-group">
+        <input type="text" id="ipcalc-address" placeholder="192.168.0.1/24" autocomplete="off">
+        <button class="btn" id="ipcalc-start"><span class="spinner" id="ipcalc-spinner"></span>Calc</button>
+        <button class="btn" id="ipcalc-stop">Stop</button>
+      </div>
+    </div>
+
+    <pre class="terminal" id="term"></pre>
+
+    <div class="stats" id="stats">
+      <div class="stat">Sent: <span id="sent">0</span></div>
+      <div class="stat">Recv: <span id="recv">0</span></div>
+      <div class="stat">Loss: <span id="loss">0%</span></div>
+      <div class="stat">Last: <span id="last">-</span></div>
+    </div>
+  </div>
+
+  <footer>Real ping • whois • nslookup • dig • port scan • host • ipcalc • Enter to run • ESC to stop</footer>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+// === DOM Elements ===
+const socket = io();
+
+// === CLIENT IP + LOCATION ===
+const ipEl = document.getElementById('ip');
+const locationEl = document.getElementById('location');
+
+socket.on('client-info', ({ ip, location }) => {
+  ipEl.textContent = ip;
+  ipEl.style.color = '#58a6ff';
+  locationEl.textContent = location;
+  locationEl.style.color = '#79c0ff';
+});
+
+// === CLICK IP TO INSERT INTO CURRENT TAB ===
+const ipLink = document.getElementById('ip');
+
+ipLink.addEventListener('click', () => {
+  const ip = ipLink.textContent;
+  if (ip === 'Detecting...' || !ip) return;
+
+  let inputField = null;
+  switch (currentTab) {
+    case 'ping':      inputField = pingTarget; break;
+    case 'whois':     inputField = whoisDomain; break;
+    case 'nslookup':  inputField = nslookupDomain; break;
+    case 'dig':       inputField = digDomain; break;
+    case 'portscan':  inputField = portscanHost; break;
+    case 'host':      inputField = hostTarget; break;
+    case 'ipcalc':    inputField = ipcalcAddress; break;
+  }
+
+  if (inputField) {
+    inputField.value = ip;
+    inputField.focus();
+    inputField.style.background = '#1f6feb';
+    setTimeout(() => { inputField.style.background = ''; }, 300);
+  }
+});
+
+const term = document.getElementById('term');
+const tabs = document.querySelectorAll('.tab');
+const contents = document.querySelectorAll('.tab-content');
+
+// Inputs
+const pingTarget = document.getElementById('ping-target');
+const pingCount = document.getElementById('ping-count');
+const whoisDomain = document.getElementById('whois-domain');
+const nslookupDomain = document.getElementById('nslookup-domain');
+const digDomain = document.getElementById('dig-domain');
+const digServer = document.getElementById('dig-server');
+const portscanHost = document.getElementById('portscan-host');
+const portscanPort = document.getElementById('portscan-port');
+const hostTarget = document.getElementById('host-target');
+const ipcalcAddress = document.getElementById('ipcalc-address');
+
+// Buttons
+const pingStart = document.getElementById('ping-start');
+const pingStop = document.getElementById('ping-stop');
+const whoisStart = document.getElementById('whois-start');
+const whoisStop = document.getElementById('whois-stop');
+const nslookupStart = document.getElementById('nslookup-start');
+const nslookupStop = document.getElementById('nslookup-stop');
+const digStart = document.getElementById('dig-start');
+const digStop = document.getElementById('dig-stop');
+const portscanStart = document.getElementById('portscan-start');
+const portscanStop = document.getElementById('portscan-stop');
+const hostStart = document.getElementById('host-start');
+const hostStop = document.getElementById('host-stop');
+const ipcalcStart = document.getElementById('ipcalc-start');
+const ipcalcStop = document.getElementById('ipcalc-stop');
+
+// Spinners
+const pingSpinner = document.getElementById('ping-spinner');
+const whoisSpinner = document.getElementById('whois-spinner');
+const nslookupSpinner = document.getElementById('nslookup-spinner');
+const digSpinner = document.getElementById('dig-spinner');
+const portscanSpinner = document.getElementById('portscan-spinner');
+const hostSpinner = document.getElementById('host-spinner');
+const ipcalcSpinner = document.getElementById('ipcalc-spinner');
+
+// Stats
+const sentEl = document.getElementById('sent');
+const recvEl = document.getElementById('recv');
+const lossEl = document.getElementById('loss');
+const lastEl = document.getElementById('last');
+const statsDiv = document.getElementById('stats');
+
+let sent = 0, recv = 0;
+let currentTab = 'ping';
+
+// === Tab Switching ===
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    contents.forEach(c => c.style.display = 'none');
+    document.getElementById(tab.dataset.tab + '-tab').style.display = 'block';
+    currentTab = tab.dataset.tab;
+    resetStats();
+    term.classList.remove('show');
+    term.innerHTML = '';
+  });
+});
+
+// === Output ===
+function appendLine({ text, color }) {
+  const line = document.createElement('div');
+  line.className = 'line';
+  line.textContent = text;
+
+  if (color === 'green') line.style.color = 'var(--success)';
+  else if (color === 'red') line.style.color = 'var(--danger)';
+  else if (color === 'gray') line.style.color = '#6e7681';
+  else if (color === 'yellow') line.style.color = 'var(--warning)';
+  else if (color === 'cyan') line.style.color = 'var(--cyan)';
+
+  term.appendChild(line);
+  term.scrollTop = term.scrollHeight;
+}
+
+function showStats(show) {
+  statsDiv.style.display = show ? 'flex' : 'none';
+}
+
+function resetStats() {
+  sent = recv = 0;
+  sentEl.textContent = recvEl.textContent = '0';
+  lossEl.textContent = '0%';
+  lastEl.textContent = '-';
+  lastEl.style.color = '';
+}
+
+function resetUI() {
+  if (currentTab === 'ping') {
+    pingStart.disabled = false;
+    pingStop.style.display = 'none';
+    pingSpinner.style.display = 'none';
+    pingStart.innerHTML = '<span class="spinner" id="ping-spinner"></span>Start';
+  } else if (currentTab === 'whois') {
+    whoisStart.disabled = false;
+    whoisStop.style.display = 'none';
+    whoisSpinner.style.display = 'none';
+    whoisStart.innerHTML = '<span class="spinner" id="whois-spinner"></span>Lookup';
+  } else if (currentTab === 'nslookup') {
+    nslookupStart.disabled = false;
+    nslookupStop.style.display = 'none';
+    nslookupSpinner.style.display = 'none';
+    nslookupStart.innerHTML = '<span class="spinner" id="nslookup-spinner"></span>Lookup';
+  } else if (currentTab === 'dig') {
+    digStart.disabled = false;
+    digStop.style.display = 'none';
+    digSpinner.style.display = 'none';
+    digStart.innerHTML = '<span class="spinner" id="dig-spinner"></span>DIG';
+  } else if (currentTab === 'portscan') {
+    portscanStart.disabled = false;
+    portscanStop.style.display = 'none';
+    portscanSpinner.style.display = 'none';
+    portscanStart.innerHTML = '<span class="spinner" id="portscan-spinner"></span>Scan';
+  } else if (currentTab === 'host') {
+    hostStart.disabled = false;
+    hostStop.style.display = 'none';
+    hostSpinner.style.display = 'none';
+    hostStart.innerHTML = '<span class="spinner" id="host-spinner"></span>Lookup';
+  } else if (currentTab === 'ipcalc') {
+    ipcalcStart.disabled = false;
+    ipcalcStop.style.display = 'none';
+    ipcalcSpinner.style.display = 'none';
+    ipcalcStart.innerHTML = '<span class="spinner" id="ipcalc-spinner"></span>Calc';
+  }
+}
+
+// === Socket Events ===
+socket.on('output', ({ type, text }) => {
+  if (type === 'header') {
+    term.classList.add('show');
+    term.innerHTML = '';
+    showStats(currentTab === 'ping');
+    resetStats();
+  }
+  appendLine({ text });
+});
+
+socket.on('line', (data) => {
+  if (currentTab === 'ping' && data.type === 'ping') {
+    sent++;
+    if (data.time !== undefined) {
+      recv++;
+      lastEl.textContent = `${data.time.toFixed(1)} ms`;
+      lastEl.style.color = data.color === 'green' ? 'var(--success)' :
+                           data.color === 'yellow' ? 'var(--warning)' : 'var(--danger)';
+    } else {
+      lastEl.textContent = 'timeout';
+      lastEl.style.color = '#6e7681';
+    }
+    sentEl.textContent = sent;
+    recvEl.textContent = recv;
+    lossEl.textContent = sent ? Math.round((sent-recv)/sent*100) + '%' : '0%';
+  }
+  appendLine({ text: data.text, color: data.color });
+});
+
+socket.on('reset-ui', resetUI);
+
+// === Controls ===
+function startPing() {
+  const target = pingTarget.value.trim();
+  const count = parseInt(pingCount.value) || 10;
+  if (!target) return alert('Enter a target');
+  pingStart.disabled = true;
+  pingStop.style.display = 'flex';
+  pingSpinner.style.display = 'inline-block';
+  pingStart.innerHTML = '<span class="spinner"></span>Pinging…';
+  socket.emit('start-ping', { target, count });
+}
+
+function startWhois() {
+  const domain = whoisDomain.value.trim();
+  if (!domain) return alert('Enter a domain');
+  whoisStart.disabled = true;
+  whoisStop.style.display = 'flex';
+  whoisSpinner.style.display = 'inline-block';
+  whoisStart.innerHTML = '<span class="spinner"></span>Looking up…';
+  socket.emit('start-whois', { domain });
+}
+
+function startNslookup() {
+  const domain = nslookupDomain.value.trim();
+  if (!domain) return alert('Enter a domain');
+  nslookupStart.disabled = true;
+  nslookupStop.style.display = 'flex';
+  nslookupSpinner.style.display = 'inline-block';
+  nslookupStart.innerHTML = '<span class="spinner"></span>Looking up…';
+  socket.emit('start-nslookup', { domain });
+}
+
+function startDig() {
+  const domain = digDomain.value.trim();
+  const server = digServer.value.trim() || '1.1.1.1';
+  if (!domain) return alert('Enter a domain');
+  digStart.disabled = true;
+  digStop.style.display = 'flex';
+  digSpinner.style.display = 'inline-block';
+  digStart.innerHTML = '<span class="spinner"></span>DIG…';
+  socket.emit('start-dig', { domain, server });
+}
+
+function startPortscan() {
+  const host = portscanHost.value.trim();
+  const port = parseInt(portscanPort.value);
+  if (!host) return alert('Enter a host');
+  if (!port || port < 1 || port > 65535) return alert('Enter valid port (1-65535)');
+  portscanStart.disabled = true;
+  portscanStop.style.display = 'flex';
+  portscanSpinner.style.display = 'inline-block';
+  portscanStart.innerHTML = '<span class="spinner"></span>Scanning…';
+  socket.emit('start-portscan', { host, port });
+}
+
+function startHost() {
+  const target = hostTarget.value.trim();
+  if (!target) return alert('Enter a domain or IP');
+  hostStart.disabled = true;
+  hostStop.style.display = 'flex';
+  hostSpinner.style.display = 'inline-block';
+  hostStart.innerHTML = '<span class="spinner"></span>Looking up…';
+  socket.emit('start-host', { target });
+}
+
+function startIpcalc() {
+  const address = ipcalcAddress.value.trim();
+  if (!address) return alert('Enter IP/mask (e.g. 192.168.0.1/24)');
+  ipcalcStart.disabled = true;
+  ipcalcStop.style.display = 'flex';
+  ipcalcSpinner.style.display = 'inline-block';
+  ipcalcStart.innerHTML = '<span class="spinner"></span>Calculating…';
+  socket.emit('start-ipcalc', { address });
+}
+
+pingStart.onclick = startPing;
+whoisStart.onclick = startWhois;
+nslookupStart.onclick = startNslookup;
+digStart.onclick = startDig;
+portscanStart.onclick = startPortscan;
+hostStart.onclick = startHost;
+ipcalcStart.onclick = startIpcalc;
+
+pingStop.onclick = whoisStop.onclick = nslookupStop.onclick = digStop.onclick = portscanStop.onclick = hostStop.onclick = ipcalcStop.onclick = () => socket.emit('stop');
+
+// === Enter Key ===
+pingTarget.addEventListener('keydown', e => e.key === 'Enter' && startPing());
+pingCount.addEventListener('keydown', e => e.key === 'Enter' && startPing());
+whoisDomain.addEventListener('keydown', e => e.key === 'Enter' && startWhois());
+nslookupDomain.addEventListener('keydown', e => e.key === 'Enter' && startNslookup());
+digDomain.addEventListener('keydown', e => e.key === 'Enter' && startDig());
+digServer.addEventListener('keydown', e => e.key === 'Enter' && startDig());
+portscanHost.addEventListener('keydown', e => e.key === 'Enter' && startPortscan());
+portscanPort.addEventListener('keydown', e => e.key === 'Enter' && startPortscan());
+hostTarget.addEventListener('keydown', e => e.key === 'Enter' && startHost());
+ipcalcAddress.addEventListener('keydown', e => e.key === 'Enter' && startIpcalc());
+
+// === ESC to Stop ===
+document.addEventListener('keydown', e => e.key === 'Escape' && socket.emit('stop'));
+
+// Focus
+pingTarget.focus();
+</script>
+</body>
+</html>
