@@ -42,7 +42,7 @@ No simulation — uses actual system binaries.
 
 > **Attribution Required**  
 > If you use this code, please include:  
-> _"Network Toolbox by Kamil Kaczmarczyk – https://netscan.online"_
+> _"Network Toolbox by Jacek Iwaszko – https://netscan.online"_
 
 See [`LICENSE`](./LICENSE) for full details.
 
